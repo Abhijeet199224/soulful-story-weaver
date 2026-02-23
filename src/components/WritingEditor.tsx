@@ -1,6 +1,8 @@
 import { useState, Fragment } from "react";
 import { motion } from "framer-motion";
-import { Sparkles, PenLine } from "lucide-react";
+import { Sparkles, PenLine, Loader2 } from "lucide-react";
+import { streamChat } from "@/lib/ai";
+import { toast } from "sonner";
 
 interface TextSegment {
   text: string;
@@ -50,13 +52,53 @@ const generateContent = (soulLevel: number): TextSegment[] => {
 const WritingEditor = ({ soulLevel }: WritingEditorProps) => {
   const [content, setContent] = useState<TextSegment[]>(() => generateContent(soulLevel));
   const [isGenerating, setIsGenerating] = useState(false);
+  const [aiGeneratedText, setAiGeneratedText] = useState("");
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     setIsGenerating(true);
-    setTimeout(() => {
+    setAiGeneratedText("");
+
+    const currentText = content.map((s) => s.text).join("");
+    const toneDesc =
+      soulLevel <= 30
+        ? "deeply personal, emotional, and human"
+        : soulLevel <= 70
+        ? "a balanced blend of human warmth and structured prose"
+        : "structured, descriptive, and polished";
+
+    let generated = "";
+
+    try {
+      await streamChat({
+        messages: [
+          {
+            role: "user",
+            content: `Continue this story passage in a ${toneDesc} tone. Soul level: ${soulLevel}/100. Write 2-3 paragraphs.\n\nCurrent text:\n${currentText}`,
+          },
+        ],
+        mode: "generate",
+        onDelta: (chunk) => {
+          generated += chunk;
+          setAiGeneratedText(generated);
+        },
+        onDone: () => {
+          setContent((prev) => [
+            ...prev,
+            { text: " " + generated, type: soulLevel <= 30 ? "editable" : "ai" },
+          ]);
+          setAiGeneratedText("");
+          setIsGenerating(false);
+        },
+        onError: (err) => {
+          toast.error(err);
+          setIsGenerating(false);
+        },
+      });
+    } catch {
+      toast.error("Failed to generate content");
       setContent(generateContent(soulLevel));
       setIsGenerating(false);
-    }, 800);
+    }
   };
 
   return (
@@ -68,8 +110,17 @@ const WritingEditor = ({ soulLevel }: WritingEditorProps) => {
           disabled={isGenerating}
           className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-all hover:opacity-90 disabled:opacity-50 glow-primary"
         >
-          <Sparkles className="h-4 w-4" />
-          {isGenerating ? "Generating..." : "Generate"}
+          {isGenerating ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Generating...
+            </>
+          ) : (
+            <>
+              <Sparkles className="h-4 w-4" />
+              Generate with AI
+            </>
+          )}
         </button>
       </div>
 
@@ -94,6 +145,9 @@ const WritingEditor = ({ soulLevel }: WritingEditorProps) => {
             )}
           </Fragment>
         ))}
+        {aiGeneratedText && (
+          <span className="text-muted-foreground typing-cursor">{aiGeneratedText}</span>
+        )}
       </motion.div>
 
       {soulLevel > 0 && soulLevel < 100 && (
