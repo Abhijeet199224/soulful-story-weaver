@@ -1,0 +1,42 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: radial-gradient(circle at top left, #f6f6f2, #ece9df 45%, #e6e1d4);
+  color: #111827;
+  font-family: "Sora", "Segoe UI", sans-serif;
+}
+
+.tiptap {
+  min-height: 60vh;
+  outline: none;
+}
+
+.tiptap p {
+  margin: 0.5rem 0;
+  line-height: 1.75;
+}
+
+.tiptap h1,
+.tiptap h2,
+.tiptap h3 {
+  margin: 1rem 0 0.5rem;
+  line-height: 1.2;
+}
+
+.tiptap blockquote {
+  border-left: 3px solid #9ca3af;
+  margin: 0.75rem 0;
+  padding-left: 0.75rem;
+  color: #374151;
+}
