@@ -70,6 +70,46 @@ function buildModelFallbackList(primaryModel: string, configuredFallbacks?: stri
   return Array.from(new Set([primaryModel, ...(configured.length ? configured : defaults)]));
 }
 
+function buildGeminiListModelsUrl(apiUrl: string, apiKey: string) {
+  const match = apiUrl.match(/^(https:\/\/generativelanguage\.googleapis\.com\/v[0-9a-z]+)/i);
+  const apiBase = match?.[1] || "https://generativelanguage.googleapis.com/v1beta";
+  return `${apiBase}/models?key=${encodeURIComponent(apiKey)}`;
+}
+
+async function discoverGeminiModels(apiUrl: string, apiKey: string) {
+  try {
+    const listUrl = buildGeminiListModelsUrl(apiUrl, apiKey);
+    const response = await fetch(listUrl);
+    if (!response.ok) {
+      return [] as string[];
+    }
+
+    const data = (await response.json()) as {
+      models?: Array<{
+        name?: string;
+        supportedGenerationMethods?: string[];
+      }>;
+    };
+
+    const discovered = (data.models || [])
+      .filter((model) => (model.supportedGenerationMethods || []).includes("generateContent"))
+      .map((model) => (model.name || "").replace(/^models\//, ""))
+      .filter((name) => name.toLowerCase().includes("gemini"));
+
+    const score = (name: string) => {
+      const n = name.toLowerCase();
+      if (n.includes("flash-lite")) return 0;
+      if (n.includes("flash")) return 1;
+      if (n.includes("pro")) return 2;
+      return 3;
+    };
+
+    return Array.from(new Set(discovered)).sort((a, b) => score(a) - score(b));
+  } catch {
+    return [] as string[];
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { mode, text, context, stream } = (await req.json()) as {
@@ -128,8 +168,13 @@ export async function POST(req: NextRequest) {
     let response: Response | null = null;
     let usedModel = model;
     let lastQuotaError: { status: number; raw: string; model: string } | null = null;
+    const attemptedModels: string[] = [];
+    let discoveredModelsAdded = false;
+    const candidateModels = [...fallbackModels];
 
-    for (const candidateModel of fallbackModels) {
+    for (let index = 0; index < candidateModels.length; index += 1) {
+      const candidateModel = candidateModels[index];
+      attemptedModels.push(candidateModel);
       const attempt = await fetch(apiUrl, {
         method: "POST",
         headers: {
@@ -148,7 +193,17 @@ export async function POST(req: NextRequest) {
       const textError = await attempt.text();
       if (!isQuotaExceededError(attempt.status, textError) && !isRetryableModelError(attempt.status, textError)) {
         const normalized = normalizeProviderError(attempt.status, textError, candidateModel);
-        return Response.json({ ...normalized, attemptedModels: fallbackModels }, { status: normalized.status });
+        return Response.json({ ...normalized, attemptedModels }, { status: normalized.status });
+      }
+
+      if (isRetryableModelError(attempt.status, textError) && !discoveredModelsAdded) {
+        const discoveredModels = await discoverGeminiModels(apiUrl, apiKey);
+        for (const discoveredModel of discoveredModels) {
+          if (!candidateModels.includes(discoveredModel)) {
+            candidateModels.push(discoveredModel);
+          }
+        }
+        discoveredModelsAdded = true;
       }
 
       lastQuotaError = { status: attempt.status, raw: textError, model: candidateModel };
@@ -159,7 +214,7 @@ export async function POST(req: NextRequest) {
         lastQuotaError ||
         ({ status: 429, raw: "Quota exceeded for all configured models.", model } as { status: number; raw: string; model: string });
       const normalized = normalizeProviderError(fallbackError.status, fallbackError.raw, fallbackError.model);
-      return Response.json({ ...normalized, attemptedModels: fallbackModels }, { status: normalized.status });
+      return Response.json({ ...normalized, attemptedModels }, { status: normalized.status });
     }
 
     if (stream && response.body) {

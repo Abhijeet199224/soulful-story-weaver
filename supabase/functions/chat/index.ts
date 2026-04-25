@@ -74,6 +74,46 @@ function buildModelFallbackList(primaryModel: string, configuredFallbacks?: stri
   return Array.from(new Set([primaryModel, ...(configured.length ? configured : defaults)]));
 }
 
+function buildGeminiListModelsUrl(apiUrl: string, apiKey: string) {
+  const match = apiUrl.match(/^(https:\/\/generativelanguage\.googleapis\.com\/v[0-9a-z]+)/i);
+  const apiBase = match?.[1] || "https://generativelanguage.googleapis.com/v1beta";
+  return `${apiBase}/models?key=${encodeURIComponent(apiKey)}`;
+}
+
+async function discoverGeminiModels(apiUrl: string, apiKey: string) {
+  try {
+    const listUrl = buildGeminiListModelsUrl(apiUrl, apiKey);
+    const response = await fetch(listUrl);
+    if (!response.ok) {
+      return [] as string[];
+    }
+
+    const data = (await response.json()) as {
+      models?: Array<{
+        name?: string;
+        supportedGenerationMethods?: string[];
+      }>;
+    };
+
+    const discovered = (data.models || [])
+      .filter((model) => (model.supportedGenerationMethods || []).includes("generateContent"))
+      .map((model) => (model.name || "").replace(/^models\//, ""))
+      .filter((name) => name.toLowerCase().includes("gemini"));
+
+    const score = (name: string) => {
+      const n = name.toLowerCase();
+      if (n.includes("flash-lite")) return 0;
+      if (n.includes("flash")) return 1;
+      if (n.includes("pro")) return 2;
+      return 3;
+    };
+
+    return Array.from(new Set(discovered)).sort((a, b) => score(a) - score(b));
+  } catch {
+    return [] as string[];
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -124,8 +164,13 @@ Be creative and provide specific, actionable details.`,
     let response: Response | null = null;
     let usedModel = AI_MODEL;
     let lastQuotaError: { status: number; raw: string; model: string } | null = null;
+    const attemptedModels: string[] = [];
+    let discoveredModelsAdded = false;
+    const candidateModels = [...fallbackModels];
 
-    for (const candidateModel of fallbackModels) {
+    for (let index = 0; index < candidateModels.length; index += 1) {
+      const candidateModel = candidateModels[index];
+      attemptedModels.push(candidateModel);
       const attempt = await fetch(AI_API_URL, {
         method: "POST",
         headers: {
@@ -160,9 +205,19 @@ Be creative and provide specific, actionable details.`,
       if (!isQuotaExceededError(attempt.status, t) && !isRetryableModelError(attempt.status, t)) {
         const normalized = normalizeProviderError(attempt.status, t, candidateModel);
         return new Response(
-          JSON.stringify({ ...normalized.body, attemptedModels: fallbackModels }),
+          JSON.stringify({ ...normalized.body, attemptedModels }),
           { status: normalized.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
+      }
+
+      if (isRetryableModelError(attempt.status, t) && !discoveredModelsAdded) {
+        const discoveredModels = await discoverGeminiModels(AI_API_URL, AI_API_KEY);
+        for (const discoveredModel of discoveredModels) {
+          if (!candidateModels.includes(discoveredModel)) {
+            candidateModels.push(discoveredModel);
+          }
+        }
+        discoveredModelsAdded = true;
       }
 
       lastQuotaError = { status: attempt.status, raw: t, model: candidateModel };
@@ -178,7 +233,7 @@ Be creative and provide specific, actionable details.`,
         });
       const normalized = normalizeProviderError(fallbackError.status, fallbackError.raw, fallbackError.model);
       return new Response(
-        JSON.stringify({ ...normalized.body, attemptedModels: fallbackModels }),
+        JSON.stringify({ ...normalized.body, attemptedModels }),
         { status: normalized.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
