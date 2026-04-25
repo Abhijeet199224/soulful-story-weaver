@@ -55,8 +55,13 @@ function isQuotaExceededError(status: number, raw: string) {
   return status === 429 || message.includes("resource_exhausted") || message.includes("quota exceeded");
 }
 
+function isRetryableModelError(status: number, raw: string) {
+  const message = extractProviderMessage(raw).toLowerCase();
+  return status === 404 && (message.includes("not found") || message.includes("not supported"));
+}
+
 function buildModelFallbackList(primaryModel: string, configuredFallbacks?: string) {
-  const defaults = ["gemini-1.5-pro", "gemini-2.0-flash"];
+  const defaults = ["gemini-2.0-flash", "gemini-2.0-flash-lite", "gemini-1.5-flash"];
   const configured = (configuredFallbacks || "")
     .split(",")
     .map((entry) => entry.trim())
@@ -141,7 +146,7 @@ export async function POST(req: NextRequest) {
       }
 
       const textError = await attempt.text();
-      if (!isQuotaExceededError(attempt.status, textError)) {
+      if (!isQuotaExceededError(attempt.status, textError) && !isRetryableModelError(attempt.status, textError)) {
         const normalized = normalizeProviderError(attempt.status, textError, candidateModel);
         return Response.json({ ...normalized, attemptedModels: fallbackModels }, { status: normalized.status });
       }

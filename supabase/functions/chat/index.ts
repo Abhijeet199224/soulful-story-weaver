@@ -59,8 +59,13 @@ function isQuotaExceededError(status: number, raw: string) {
   return status === 429 || message.includes("resource_exhausted") || message.includes("quota exceeded");
 }
 
+function isRetryableModelError(status: number, raw: string) {
+  const message = extractProviderMessage(raw).toLowerCase();
+  return status === 404 && (message.includes("not found") || message.includes("not supported"));
+}
+
 function buildModelFallbackList(primaryModel: string, configuredFallbacks?: string | null) {
-  const defaults = ["gemini-1.5-pro", "gemini-2.0-flash"];
+  const defaults = ["gemini-2.0-flash", "gemini-2.0-flash-lite", "gemini-1.5-flash"];
   const configured = (configuredFallbacks || "")
     .split(",")
     .map((entry) => entry.trim())
@@ -152,7 +157,7 @@ Be creative and provide specific, actionable details.`,
 
       const t = await attempt.text();
       console.error("AI gateway error:", attempt.status, t);
-      if (!isQuotaExceededError(attempt.status, t)) {
+      if (!isQuotaExceededError(attempt.status, t) && !isRetryableModelError(attempt.status, t)) {
         const normalized = normalizeProviderError(attempt.status, t, candidateModel);
         return new Response(
           JSON.stringify({ ...normalized.body, attemptedModels: fallbackModels }),
