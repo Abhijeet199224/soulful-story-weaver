@@ -18,6 +18,20 @@ export async function runAI(request: AIRequest): Promise<AIResponse> {
   });
 
   if (!response.ok) {
+    const contentType = response.headers.get("content-type") || "";
+    if (contentType.includes("application/json")) {
+      const payload = (await response.json()) as {
+        error?: string;
+        providerMessage?: string;
+        attemptedModels?: string[];
+      };
+      const attempted = payload.attemptedModels?.length
+        ? ` Tried: ${payload.attemptedModels.join(", ")}.`
+        : "";
+      const message = payload.error || payload.providerMessage || "AI request failed";
+      throw new Error(`${message}${attempted}`.trim());
+    }
+
     const errorText = await response.text();
     throw new Error(errorText || "AI request failed");
   }

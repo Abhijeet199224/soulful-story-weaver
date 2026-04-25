@@ -70,6 +70,53 @@ function buildModelFallbackList(primaryModel: string, configuredFallbacks?: stri
   return Array.from(new Set([primaryModel, ...(configured.length ? configured : defaults)]));
 }
 
+function stripLeadingMetaLines(text: string) {
+  const patterns = [
+    /^to\s+(expand|rewrite|continue|improve|describe|brainstorm)\b[^\n]*\n+/i,
+    /^here(?:'s| is)\b[^\n]*\n+/i,
+    /^i\s+(have|will)\b[^\n]*\n+/i,
+  ];
+
+  let out = text;
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const pattern of patterns) {
+      if (pattern.test(out)) {
+        out = out.replace(pattern, "").trimStart();
+        changed = true;
+      }
+    }
+  }
+  return out;
+}
+
+function sanitizeGeneratedText(text: string) {
+  let out = (text || "").trim();
+  if (!out) return "";
+
+  out = out.replace(/^```[a-zA-Z]*\n?/g, "").replace(/\n?```$/g, "").trim();
+
+  const starParts = out
+    .split(/\n\*{3,}\n/g)
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+  if (starParts.length >= 2) {
+    out = starParts.reduce((longest, entry) => (entry.length > longest.length ? entry : longest), starParts[0]);
+  }
+
+  out = stripLeadingMetaLines(out);
+
+  out = out
+    .replace(/\n#{1,6}\s*notes?\b[\s\S]*$/i, "")
+    .replace(/\n\*{1,2}\s*notes?\s+for\s+your\s+novel\b[\s\S]*$/i, "")
+    .replace(/\n\*{1,2}how\s+does\s+this\s+fit[\s\S]*$/i, "")
+    .replace(/\n\s*\*\*\*\s*$/g, "")
+    .trim();
+
+  return out;
+}
+
 function buildGeminiListModelsUrl(apiUrl: string, apiKey: string) {
   const match = apiUrl.match(/^(https:\/\/generativelanguage\.googleapis\.com\/v[0-9a-z]+)/i);
   const apiBase = match?.[1] || "https://generativelanguage.googleapis.com/v1beta";
@@ -232,7 +279,8 @@ export async function POST(req: NextRequest) {
       choices?: Array<{ message?: { content?: string } }>;
     };
 
-    const result = data.choices?.[0]?.message?.content?.trim() || "";
+    const rawResult = data.choices?.[0]?.message?.content?.trim() || "";
+    const result = sanitizeGeneratedText(rawResult);
     return Response.json({ result, model: usedModel });
   } catch (error) {
     return Response.json({ error: (error as Error).message || "Unexpected error" }, { status: 500 });
