@@ -157,6 +157,19 @@ const Index = () => {
         </header>
 
         <section className="mb-8 grid gap-4 lg:grid-cols-3">
+          <article className="rounded-2xl border border-slate-300 bg-white p-4 lg:col-span-3">
+            <h2 className="mb-2 font-display text-3xl text-slate-900">Start Writing Block</h2>
+            <p className="text-sm text-slate-700">
+              Jump straight into writing with formatting controls (bold, italic, heading, quote, list) in the workspace editor.
+            </p>
+            <Link
+              to="/workspace"
+              className="mt-3 inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-700"
+            >
+              Start Writing Now <ArrowRight className="h-4 w-4" />
+            </Link>
+          </article>
+
           <article className="rounded-2xl border border-slate-300 bg-white p-4">
             <h2 className="mb-2 flex items-center gap-2 font-semibold"><BookHeart className="h-4 w-4" /> Novel Drafting</h2>
             <p className="text-sm text-slate-700">Project, character, plot, chapter and moments pages designed for long-form storytelling.</p>
