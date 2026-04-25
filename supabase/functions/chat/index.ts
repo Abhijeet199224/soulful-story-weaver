@@ -14,9 +14,17 @@ serve(async (req) => {
   try {
     const { messages, mode } = await req.json();
     const AI_API_KEY = Deno.env.get("AI_API_KEY");
-    const AI_API_URL = Deno.env.get("AI_API_URL") || "https://api.openai.com/v1/chat/completions";
-    const AI_MODEL = Deno.env.get("AI_MODEL") || "gpt-4.1-mini";
+    const AI_API_URL = Deno.env.get("AI_API_URL") || "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
+    const AI_MODEL = Deno.env.get("AI_MODEL") || "gemini-2.0-flash";
     if (!AI_API_KEY) throw new Error("AI_API_KEY is not configured");
+
+    const looksLikeGeminiKey = AI_API_KEY.startsWith("AIza");
+    const pointsToOpenAI = /api\.openai\.com/i.test(AI_API_URL);
+    if (looksLikeGeminiKey && pointsToOpenAI) {
+      throw new Error(
+        "Provider mismatch: Gemini API key detected but AI_API_URL points to OpenAI. Use https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
+      );
+    }
 
     const systemPrompts: Record<string, string> = {
       story: `You are SoulScript's AI Story Developer — a creative writing partner. You help authors:

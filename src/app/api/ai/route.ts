@@ -23,11 +23,23 @@ export async function POST(req: NextRequest) {
     }
 
     const apiKey = process.env.AI_API_KEY;
-    const apiUrl = process.env.AI_API_URL || "https://api.openai.com/v1/chat/completions";
-    const model = process.env.AI_MODEL || "gpt-4.1-mini";
+    const apiUrl = process.env.AI_API_URL || "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
+    const model = process.env.AI_MODEL || "gemini-2.0-flash";
 
     if (!apiKey) {
       return Response.json({ error: "AI_API_KEY is missing" }, { status: 500 });
+    }
+
+    const looksLikeGeminiKey = apiKey.startsWith("AIza");
+    const pointsToOpenAI = /api\.openai\.com/i.test(apiUrl);
+    if (looksLikeGeminiKey && pointsToOpenAI) {
+      return Response.json(
+        {
+          error:
+            "Provider mismatch: Gemini API key detected but AI_API_URL points to OpenAI. Set AI_API_URL to https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+        },
+        { status: 400 }
+      );
     }
 
     const prompt = buildPrompt(mode, text, context);
