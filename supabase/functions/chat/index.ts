@@ -13,8 +13,10 @@ serve(async (req) => {
 
   try {
     const { messages, mode } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    const AI_API_KEY = Deno.env.get("AI_API_KEY");
+    const AI_API_URL = Deno.env.get("AI_API_URL") || "https://api.openai.com/v1/chat/completions";
+    const AI_MODEL = Deno.env.get("AI_MODEL") || "gpt-4.1-mini";
+    if (!AI_API_KEY) throw new Error("AI_API_KEY is not configured");
 
     const systemPrompts: Record<string, string> = {
       story: `You are SoulScript's AI Story Developer — a creative writing partner. You help authors:
@@ -41,24 +43,21 @@ Be creative and provide specific, actionable details.`,
 
     const systemPrompt = systemPrompts[mode] || systemPrompts.story;
 
-    const response = await fetch(
-      "https://ai.gateway.lovable.dev/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-3-flash-preview",
-          messages: [
-            { role: "system", content: systemPrompt },
-            ...messages,
-          ],
-          stream: true,
-        }),
-      }
-    );
+    const response = await fetch(AI_API_URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${AI_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: AI_MODEL,
+        messages: [
+          { role: "system", content: systemPrompt },
+          ...messages,
+        ],
+        stream: true,
+      }),
+    });
 
     if (!response.ok) {
       if (response.status === 429) {
