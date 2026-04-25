@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { Download, FileText, History } from "lucide-react";
 import { jsPDF } from "jspdf";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import TipTapEditor, { TipTapEditorRef } from "@/src/components/editor/TipTapEditor";
 import ProjectSidebar from "@/src/components/layout/ProjectSidebar";
 import { useWriterStore } from "@/src/store/writerStore";
@@ -36,13 +36,6 @@ export default function WorkspaceShell() {
 
   const project = getCurrentProject();
   const scene = getCurrentScene();
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      updateEditorContent(editorContent);
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [editorContent, updateEditorContent]);
 
   const exportMarkdown = () => {
     const blob = new Blob([editorContent], { type: "text/markdown;charset=utf-8" });

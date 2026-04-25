@@ -336,6 +336,10 @@ export const useWriterStore = create<WriterState>()(
         set((state) => {
           const project = state.getCurrentProject();
           const chapter = state.getCurrentChapter();
+          const activeScene = chapter.scenes.find((scene) => scene.id === state.currentSceneId);
+          if (state.editorContent === content && activeScene?.content === content) {
+            return state;
+          }
           return {
             editorContent: content,
             projects: state.projects.map((entry) =>
