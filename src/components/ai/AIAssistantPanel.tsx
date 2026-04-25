@@ -64,10 +64,10 @@ export default function AIAssistantPanel({ contextText, onAccept }: AIAssistantP
   });
 
   return (
-    <aside className="flex h-full flex-col gap-3 border-l border-slate-300 bg-[#f8f6ef] p-3">
+    <aside className="soul-glass flex h-full flex-col gap-3 rounded-xl border border-white/20 p-3">
       <header>
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">AI Writing Partner</p>
-        <p className="mt-1 text-xs text-slate-500">Selected text is prioritized. Cmd/Ctrl + Enter runs the active mode.</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-300">AI Writing Partner</p>
+        <p className="mt-1 text-xs text-slate-400">Selected text is prioritized. Cmd/Ctrl + Enter runs the active mode.</p>
       </header>
 
       <div className="grid gap-2">
@@ -76,11 +76,11 @@ export default function AIAssistantPanel({ contextText, onAccept }: AIAssistantP
             key={entry.mode}
             onClick={() => setAIMode(entry.mode)}
             className={`rounded-lg border p-2 text-left transition ${
-              aiMode === entry.mode ? "border-slate-700 bg-slate-900 text-white" : "border-slate-300 bg-white"
+              aiMode === entry.mode ? "border-amber-300/70 bg-amber-200 text-slate-900" : "border-white/20 bg-black/20 text-slate-100"
             }`}
           >
             <p className="text-sm font-semibold">{entry.label}</p>
-            <p className={`text-xs ${aiMode === entry.mode ? "text-slate-200" : "text-slate-500"}`}>{entry.description}</p>
+            <p className={`text-xs ${aiMode === entry.mode ? "text-slate-700" : "text-slate-400"}`}>{entry.description}</p>
           </button>
         ))}
       </div>
@@ -88,15 +88,15 @@ export default function AIAssistantPanel({ contextText, onAccept }: AIAssistantP
       <button
         onClick={() => void runSelectedMode()}
         disabled={aiLoadingState}
-        className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-sm font-semibold text-white disabled:opacity-60"
+        className="inline-flex items-center justify-center gap-2 rounded-lg bg-amber-300 px-3 py-2 text-sm font-semibold text-slate-900 disabled:opacity-60"
       >
         {aiLoadingState ? <Loader2 className="h-4 w-4 animate-spin" /> : <WandSparkles className="h-4 w-4" />}
         Generate Suggestion
       </button>
 
-      <section className="flex-1 rounded-lg border border-slate-300 bg-white p-3">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">AI Preview</p>
-        <div className="max-h-[44vh] overflow-y-auto text-sm leading-6 text-slate-700 whitespace-pre-wrap">
+      <section className="flex-1 rounded-lg border border-white/20 bg-black/20 p-3">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-300">AI Preview</p>
+        <div className="max-h-[44vh] overflow-y-auto text-sm leading-6 text-slate-100 whitespace-pre-wrap">
           {aiPreview || "Run an AI mode to preview content before insertion."}
         </div>
       </section>
@@ -108,13 +108,13 @@ export default function AIAssistantPanel({ contextText, onAccept }: AIAssistantP
             onAccept(aiPreview);
             setAIState({ aiPreview: "" });
           }}
-          className="flex-1 rounded-md border border-emerald-300 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800"
+          className="flex-1 rounded-md border border-emerald-300/60 bg-emerald-200 px-3 py-2 text-xs font-semibold text-emerald-950"
         >
           Accept
         </button>
         <button
           onClick={() => setAIState({ aiPreview: "" })}
-          className="flex-1 rounded-md border border-rose-300 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700"
+          className="flex-1 rounded-md border border-rose-300/60 bg-rose-200 px-3 py-2 text-xs font-semibold text-rose-950"
         >
           Reject
         </button>

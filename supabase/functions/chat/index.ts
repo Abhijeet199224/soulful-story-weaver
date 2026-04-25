@@ -6,6 +6,69 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+type ProviderErrorBody = {
+  error?: {
+    message?: string;
+    status?: string;
+  };
+};
+
+function extractProviderMessage(raw: string): string {
+  try {
+    const parsed = JSON.parse(raw) as ProviderErrorBody | ProviderErrorBody[];
+    if (Array.isArray(parsed)) {
+      return parsed[0]?.error?.message || raw;
+    }
+    return parsed?.error?.message || raw;
+  } catch {
+    return raw;
+  }
+}
+
+function normalizeProviderError(status: number, raw: string, model: string) {
+  const message = extractProviderMessage(raw);
+  const lower = message.toLowerCase();
+  const quotaExceeded = status === 429 || lower.includes("resource_exhausted") || lower.includes("quota exceeded");
+  const retryMatch = message.match(/retry in\s+([\d.]+)s/i) || message.match(/retrydelay\":\s*\"(\d+)s/i);
+  const retryHint = retryMatch ? ` Retry after about ${retryMatch[1]}s.` : "";
+
+  if (quotaExceeded) {
+    return {
+      status: 429,
+      body: {
+        error:
+          `Gemini quota exceeded for model ${model}. ` +
+          "If you have Gemini Pro access, set AI_MODEL to a Pro model (for example: gemini-1.5-pro) " +
+          "and ensure billing/quota is enabled in the same Google AI project." +
+          retryHint,
+        providerMessage: message,
+      },
+    };
+  }
+
+  return {
+    status,
+    body: {
+      error: message || "AI service error",
+    },
+  };
+}
+
+function isQuotaExceededError(status: number, raw: string) {
+  const message = extractProviderMessage(raw).toLowerCase();
+  return status === 429 || message.includes("resource_exhausted") || message.includes("quota exceeded");
+}
+
+function buildModelFallbackList(primaryModel: string, configuredFallbacks?: string | null) {
+  const defaults = ["gemini-1.5-pro", "gemini-2.0-flash"];
+  const configured = (configuredFallbacks || "")
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+
+  return Array.from(new Set([primaryModel, ...(configured.length ? configured : defaults)]));
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -16,6 +79,8 @@ serve(async (req) => {
     const AI_API_KEY = Deno.env.get("AI_API_KEY");
     const AI_API_URL = Deno.env.get("AI_API_URL") || "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
     const AI_MODEL = Deno.env.get("AI_MODEL") || "gemini-2.0-flash";
+    const AI_FALLBACK_MODELS = Deno.env.get("AI_FALLBACK_MODELS");
+    const fallbackModels = buildModelFallbackList(AI_MODEL, AI_FALLBACK_MODELS);
     if (!AI_API_KEY) throw new Error("AI_API_KEY is not configured");
 
     const looksLikeGeminiKey = AI_API_KEY.startsWith("AIza");
@@ -51,45 +116,70 @@ Be creative and provide specific, actionable details.`,
 
     const systemPrompt = systemPrompts[mode] || systemPrompts.story;
 
-    const response = await fetch(AI_API_URL, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${AI_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: AI_MODEL,
-        messages: [
-          { role: "system", content: systemPrompt },
-          ...messages,
-        ],
-        stream: true,
-      }),
-    });
+    let response: Response | null = null;
+    let usedModel = AI_MODEL;
+    let lastQuotaError: { status: number; raw: string; model: string } | null = null;
 
-    if (!response.ok) {
-      if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+    for (const candidateModel of fallbackModels) {
+      const attempt = await fetch(AI_API_URL, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${AI_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: candidateModel,
+          messages: [
+            { role: "system", content: systemPrompt },
+            ...messages,
+          ],
+          stream: true,
+        }),
+      });
+
+      if (attempt.ok) {
+        response = attempt;
+        usedModel = candidateModel;
+        break;
       }
-      if (response.status === 402) {
+
+      if (attempt.status === 402) {
         return new Response(
           JSON.stringify({ error: "AI credits exhausted. Please add credits to continue." }),
           { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      const t = await response.text();
-      console.error("AI gateway error:", response.status, t);
+
+      const t = await attempt.text();
+      console.error("AI gateway error:", attempt.status, t);
+      if (!isQuotaExceededError(attempt.status, t)) {
+        const normalized = normalizeProviderError(attempt.status, t, candidateModel);
+        return new Response(
+          JSON.stringify({ ...normalized.body, attemptedModels: fallbackModels }),
+          { status: normalized.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      lastQuotaError = { status: attempt.status, raw: t, model: candidateModel };
+    }
+
+    if (!response) {
+      const fallbackError =
+        lastQuotaError ||
+        ({ status: 429, raw: "Quota exceeded for all configured models.", model: AI_MODEL } as {
+          status: number;
+          raw: string;
+          model: string;
+        });
+      const normalized = normalizeProviderError(fallbackError.status, fallbackError.raw, fallbackError.model);
       return new Response(
-        JSON.stringify({ error: "AI service error" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ ...normalized.body, attemptedModels: fallbackModels }),
+        { status: normalized.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     return new Response(response.body, {
-      headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+      headers: { ...corsHeaders, "Content-Type": "text/event-stream", "X-AI-Model": usedModel },
     });
   } catch (e) {
     console.error("chat error:", e);

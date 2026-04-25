@@ -34,7 +34,7 @@ const TipTapEditor = forwardRef<TipTapEditorRef, TipTapEditorProps>(function Tip
     content,
     editorProps: {
       attributes: {
-        class: "tiptap rounded-xl bg-white p-5 shadow-sm border border-slate-200",
+        class: "tiptap rounded-xl bg-[#fffdf8] p-5 shadow-sm border border-slate-200",
       },
     },
     onSelectionUpdate: ({ editor: currentEditor }) => {
@@ -80,28 +80,28 @@ const TipTapEditor = forwardRef<TipTapEditorRef, TipTapEditorProps>(function Tip
   }));
 
   if (!editor) {
-    return <div className="h-[60vh] animate-pulse rounded-xl border border-slate-200 bg-white" />;
+    return <div className="h-[60vh] animate-pulse rounded-xl border border-white/20 bg-black/20" />;
   }
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-white p-2">
-        <button onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} className="rounded border border-slate-200 px-2 py-1 text-xs">
+      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-white/20 bg-black/20 p-2">
+        <button onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} className="rounded border border-white/20 bg-white/10 px-2 py-1 text-xs text-slate-100">
           <Heading2 className="h-3.5 w-3.5" />
         </button>
-        <button onClick={() => editor.chain().focus().toggleBold().run()} className="rounded border border-slate-200 px-2 py-1 text-xs">
+        <button onClick={() => editor.chain().focus().toggleBold().run()} className="rounded border border-white/20 bg-white/10 px-2 py-1 text-xs text-slate-100">
           <Bold className="h-3.5 w-3.5" />
         </button>
-        <button onClick={() => editor.chain().focus().toggleItalic().run()} className="rounded border border-slate-200 px-2 py-1 text-xs">
+        <button onClick={() => editor.chain().focus().toggleItalic().run()} className="rounded border border-white/20 bg-white/10 px-2 py-1 text-xs text-slate-100">
           <Italic className="h-3.5 w-3.5" />
         </button>
-        <button onClick={() => editor.chain().focus().toggleBulletList().run()} className="rounded border border-slate-200 px-2 py-1 text-xs">
+        <button onClick={() => editor.chain().focus().toggleBulletList().run()} className="rounded border border-white/20 bg-white/10 px-2 py-1 text-xs text-slate-100">
           <List className="h-3.5 w-3.5" />
         </button>
-        <button onClick={() => editor.chain().focus().toggleBlockquote().run()} className="rounded border border-slate-200 px-2 py-1 text-xs">
+        <button onClick={() => editor.chain().focus().toggleBlockquote().run()} className="rounded border border-white/20 bg-white/10 px-2 py-1 text-xs text-slate-100">
           <MessageSquareQuote className="h-3.5 w-3.5" /> Dialogue
         </button>
-        <button onClick={() => onSnapshot()} className="ml-auto inline-flex items-center gap-1 rounded border border-slate-200 px-2 py-1 text-xs">
+        <button onClick={() => onSnapshot()} className="ml-auto inline-flex items-center gap-1 rounded border border-amber-300/70 bg-amber-200 px-2 py-1 text-xs font-semibold text-slate-900">
           <Save className="h-3.5 w-3.5" /> Save Snapshot
         </button>
       </div>

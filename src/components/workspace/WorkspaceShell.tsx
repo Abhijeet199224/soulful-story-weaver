@@ -69,17 +69,17 @@ export default function WorkspaceShell() {
   );
 
   return (
-    <div className="h-screen overflow-hidden bg-transparent p-3">
+    <div className="h-screen overflow-hidden bg-transparent p-3 text-slate-100">
       <div className="grid h-full grid-cols-[300px_minmax(0,1fr)_340px] gap-3">
         <div className="grid h-full grid-rows-[minmax(0,1fr)_minmax(0,290px)] gap-3">
           <ProjectSidebar />
 
-          <section className="overflow-y-auto rounded-xl border border-slate-300 bg-white p-3">
-            <h2 className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Characters & Outline</h2>
+          <section className="soul-glass overflow-y-auto rounded-xl border border-white/20 p-3">
+            <h2 className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-300">Characters & Outline</h2>
             <div className="mt-2 space-y-2">
-              <input value={characterName} onChange={(e) => setCharacterName(e.target.value)} placeholder="Character name" className="w-full rounded border border-slate-300 px-2 py-1 text-xs" />
-              <input value={characterPersonality} onChange={(e) => setCharacterPersonality(e.target.value)} placeholder="Personality" className="w-full rounded border border-slate-300 px-2 py-1 text-xs" />
-              <input value={characterGoals} onChange={(e) => setCharacterGoals(e.target.value)} placeholder="Goals" className="w-full rounded border border-slate-300 px-2 py-1 text-xs" />
+              <input value={characterName} onChange={(e) => setCharacterName(e.target.value)} placeholder="Character name" className="w-full rounded border border-white/20 bg-black/20 px-2 py-1 text-xs text-slate-100 placeholder:text-slate-400" />
+              <input value={characterPersonality} onChange={(e) => setCharacterPersonality(e.target.value)} placeholder="Personality" className="w-full rounded border border-white/20 bg-black/20 px-2 py-1 text-xs text-slate-100 placeholder:text-slate-400" />
+              <input value={characterGoals} onChange={(e) => setCharacterGoals(e.target.value)} placeholder="Goals" className="w-full rounded border border-white/20 bg-black/20 px-2 py-1 text-xs text-slate-100 placeholder:text-slate-400" />
               <button
                 onClick={() => {
                   if (!characterName.trim()) return;
@@ -92,18 +92,18 @@ export default function WorkspaceShell() {
                   setCharacterPersonality("");
                   setCharacterGoals("");
                 }}
-                className="w-full rounded border border-slate-300 bg-slate-100 px-2 py-1 text-xs font-semibold"
+                className="w-full rounded border border-amber-300/60 bg-amber-200 px-2 py-1 text-xs font-semibold text-slate-900"
               >
                 Add Character
               </button>
             </div>
 
-            <div className="mt-3 space-y-1.5 text-xs text-slate-700">
+            <div className="mt-3 space-y-1.5 text-xs text-slate-200">
               {project.characters.map((character) => (
-                <div key={character.id} className="rounded border border-slate-200 bg-slate-50 p-2">
+                <div key={character.id} className="rounded border border-white/15 bg-black/20 p-2">
                   <p className="font-semibold">{character.name}</p>
                   <p>{character.personality}</p>
-                  <p className="text-slate-500">Goal: {character.goals}</p>
+                  <p className="text-slate-400">Goal: {character.goals}</p>
                 </div>
               ))}
             </div>
@@ -112,19 +112,19 @@ export default function WorkspaceShell() {
               value={project.outline}
               onChange={(event) => updateOutline(event.target.value)}
               placeholder="Story outline..."
-              className="mt-3 h-24 w-full rounded border border-slate-300 px-2 py-1 text-xs"
+              className="mt-3 h-24 w-full rounded border border-white/20 bg-black/20 px-2 py-1 text-xs text-slate-100 placeholder:text-slate-400"
             />
           </section>
         </div>
 
-        <main className="flex h-full flex-col gap-3 overflow-hidden rounded-xl border border-slate-300 bg-[#f7f5ef] p-3">
-          <header className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-300 bg-white p-2">
-            <p className="text-sm font-semibold text-slate-700">{project.title} / {scene.title}</p>
-            <p className="ml-auto text-xs text-slate-500">{wordCount} words</p>
-            <button onClick={exportMarkdown} className="inline-flex items-center gap-1 rounded border border-slate-300 px-2 py-1 text-xs">
+        <main className="soul-glass flex h-full flex-col gap-3 overflow-hidden rounded-xl border border-white/20 p-3">
+          <header className="flex flex-wrap items-center gap-2 rounded-lg border border-white/20 bg-black/20 p-2">
+            <p className="text-sm font-semibold text-slate-100">{project.title} / {scene.title}</p>
+            <p className="ml-auto text-xs text-slate-300">{wordCount} words</p>
+            <button onClick={exportMarkdown} className="inline-flex items-center gap-1 rounded border border-white/20 bg-white/10 px-2 py-1 text-xs text-slate-100">
               <FileText className="h-3.5 w-3.5" /> Markdown
             </button>
-            <button onClick={exportPDF} className="inline-flex items-center gap-1 rounded border border-slate-300 px-2 py-1 text-xs">
+            <button onClick={exportPDF} className="inline-flex items-center gap-1 rounded border border-white/20 bg-white/10 px-2 py-1 text-xs text-slate-100">
               <Download className="h-3.5 w-3.5" /> PDF
             </button>
           </header>
@@ -140,19 +140,19 @@ export default function WorkspaceShell() {
             />
           </div>
 
-          <section className="rounded-lg border border-slate-300 bg-white p-2">
-            <div className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
+          <section className="rounded-lg border border-white/20 bg-black/20 p-2">
+            <div className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-300">
               <History className="h-3.5 w-3.5" /> Version Timeline
             </div>
             <div className="flex flex-wrap gap-1.5">
               {recentVersions.length === 0 ? (
-                <p className="text-xs text-slate-500">No snapshots yet.</p>
+                <p className="text-xs text-slate-400">No snapshots yet.</p>
               ) : (
                 recentVersions.map((version) => (
                   <button
                     key={version.id}
                     onClick={() => restoreVersion(version.id)}
-                    className="rounded border border-slate-300 bg-slate-50 px-2 py-1 text-xs"
+                    className="rounded border border-white/20 bg-white/10 px-2 py-1 text-xs text-slate-100"
                   >
                     {new Date(version.timestamp).toLocaleTimeString()}
                   </button>

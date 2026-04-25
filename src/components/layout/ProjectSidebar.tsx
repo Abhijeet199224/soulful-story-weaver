@@ -89,17 +89,17 @@ export default function ProjectSidebar() {
   };
 
   return (
-    <aside className="flex h-full flex-col gap-4 border-r border-slate-300 bg-[#fcfbf7] p-3">
-      <section className="rounded-lg border border-slate-300 bg-white p-2">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Projects</p>
+    <aside className="soul-glass flex h-full flex-col gap-4 rounded-xl border border-white/20 p-3">
+      <section className="rounded-lg border border-white/20 bg-black/20 p-2">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-300">Projects</p>
         <div className="space-y-1.5">
           {projects.map((entry) => (
-            <div key={entry.id} className={`flex items-center gap-2 rounded-md border px-2 py-1.5 ${entry.id === currentProjectId ? "border-slate-700 bg-slate-100" : "border-slate-200"}`}>
+            <div key={entry.id} className={`flex items-center gap-2 rounded-md border px-2 py-1.5 ${entry.id === currentProjectId ? "border-amber-300/70 bg-amber-200 text-slate-900" : "border-white/20 bg-white/10"}`}>
               <button onClick={() => selectProject(entry.id)} className="flex-1 truncate text-left text-sm">
                 {entry.title}
               </button>
               {projects.length > 1 && (
-                <button onClick={() => deleteProject(entry.id)} className="text-slate-400">
+                <button onClick={() => deleteProject(entry.id)} className={`${entry.id === currentProjectId ? "text-slate-700" : "text-slate-300"}`}>
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
               )}
@@ -111,7 +111,7 @@ export default function ProjectSidebar() {
             value={newProject}
             onChange={(event) => setNewProject(event.target.value)}
             placeholder="New novel"
-            className="w-full rounded-md border border-slate-300 px-2 py-1 text-xs"
+            className="w-full rounded-md border border-white/20 bg-black/20 px-2 py-1 text-xs text-slate-100 placeholder:text-slate-400"
           />
           <button
             onClick={() => {
@@ -119,19 +119,19 @@ export default function ProjectSidebar() {
               createProject(newProject.trim());
               setNewProject("");
             }}
-            className="rounded-md border border-slate-300 px-2"
+            className="rounded-md border border-white/20 bg-white/10 px-2 text-slate-100"
           >
             <Plus className="h-3.5 w-3.5" />
           </button>
         </div>
       </section>
 
-      <section className="overflow-y-auto rounded-lg border border-slate-300 bg-white p-2">
+      <section className="overflow-y-auto rounded-lg border border-white/20 bg-black/20 p-2">
         <div className="mb-2 flex items-center justify-between">
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Chapters & Scenes</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-300">Chapters & Scenes</p>
           <button
             onClick={() => createChapter(`Chapter ${project.chapters.length + 1}`)}
-            className="inline-flex items-center gap-1 rounded-md border border-slate-300 px-2 py-1 text-xs"
+            className="inline-flex items-center gap-1 rounded-md border border-white/20 bg-white/10 px-2 py-1 text-xs text-slate-100"
           >
             <Plus className="h-3 w-3" /> Chapter
           </button>
@@ -141,7 +141,7 @@ export default function ProjectSidebar() {
           <SortableContext items={project.chapters.map((entry) => entry.id)} strategy={verticalListSortingStrategy}>
             <div className="space-y-2">
               {project.chapters.map((chapter) => (
-                <div key={chapter.id} className="rounded-md border border-slate-200 p-2">
+                <div key={chapter.id} className="rounded-md border border-white/15 bg-black/20 p-2">
                   <SortableRow
                     id={chapter.id}
                     active={chapter.id === currentChapterId}
@@ -173,7 +173,7 @@ export default function ProjectSidebar() {
                         value={newScene}
                         onChange={(event) => setNewScene(event.target.value)}
                         placeholder="New scene"
-                        className="w-full rounded border border-slate-300 px-2 py-1 text-xs"
+                        className="w-full rounded border border-white/20 bg-black/20 px-2 py-1 text-xs text-slate-100 placeholder:text-slate-400"
                       />
                       <button
                         onClick={() => {
@@ -181,7 +181,7 @@ export default function ProjectSidebar() {
                           createScene(chapter.id, next);
                           setNewScene("");
                         }}
-                        className="rounded border border-slate-300 px-2"
+                        className="rounded border border-white/20 bg-white/10 px-2 text-slate-100"
                       >
                         <Plus className="h-3 w-3" />
                       </button>
@@ -198,7 +198,7 @@ export default function ProjectSidebar() {
             value={newChapter}
             onChange={(event) => setNewChapter(event.target.value)}
             placeholder="Quick add chapter"
-            className="w-full rounded border border-slate-300 px-2 py-1 text-xs"
+            className="w-full rounded border border-white/20 bg-black/20 px-2 py-1 text-xs text-slate-100 placeholder:text-slate-400"
           />
           <button
             onClick={() => {
@@ -206,7 +206,7 @@ export default function ProjectSidebar() {
               createChapter(next);
               setNewChapter("");
             }}
-            className="rounded border border-slate-300 px-2"
+            className="rounded border border-white/20 bg-white/10 px-2 text-slate-100"
           >
             <Plus className="h-3 w-3" />
           </button>

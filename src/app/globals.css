@@ -2,8 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Sora:wght@400;500;600;700&display=swap");
+
 :root {
-  color-scheme: light;
+  color-scheme: dark;
 }
 
 * {
@@ -12,14 +14,20 @@
 
 body {
   margin: 0;
-  background: radial-gradient(circle at top left, #f6f6f2, #ece9df 45%, #e6e1d4);
-  color: #111827;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 14% 12%, rgba(56, 189, 248, 0.16), transparent 34%),
+    radial-gradient(circle at 82% 0%, rgba(250, 204, 21, 0.14), transparent 36%),
+    radial-gradient(circle at 20% 86%, rgba(45, 212, 191, 0.1), transparent 38%),
+    linear-gradient(160deg, #0c1420 0%, #15273a 42%, #0d1828 100%);
+  color: #e5e7eb;
   font-family: "Sora", "Segoe UI", sans-serif;
 }
 
 .tiptap {
   min-height: 60vh;
   outline: none;
+  color: #1f2937;
 }
 
 .tiptap p {
@@ -32,11 +40,17 @@ body {
 .tiptap h3 {
   margin: 1rem 0 0.5rem;
   line-height: 1.2;
+  font-family: "Cormorant Garamond", serif;
 }
 
 .tiptap blockquote {
-  border-left: 3px solid #9ca3af;
+  border-left: 3px solid #d97706;
   margin: 0.75rem 0;
   padding-left: 0.75rem;
   color: #374151;
+}
+
+.soul-glass {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0.06));
+  backdrop-filter: blur(10px);
 }
