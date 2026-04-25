@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { Loader2, WandSparkles } from "lucide-react";
 import { runAI } from "@/src/lib/ai";
 import { AIMode } from "@/src/types/writer";
@@ -33,7 +33,7 @@ export default function AIAssistantPanel({ contextText, onAccept }: AIAssistantP
 
   const project = getCurrentProject();
 
-  const runSelectedMode = async () => {
+  const runSelectedMode = useCallback(async () => {
     const baseText = selectedText || contextText;
     if (!baseText?.trim()) return;
 
@@ -48,7 +48,7 @@ export default function AIAssistantPanel({ contextText, onAccept }: AIAssistantP
     } catch (error) {
       setAIState({ aiLoadingState: false, aiPreview: `AI error: ${(error as Error).message}` });
     }
-  };
+  }, [aiMode, contextText, project.characters, project.outline, project.title, selectedText, setAIState]);
 
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
@@ -61,7 +61,7 @@ export default function AIAssistantPanel({ contextText, onAccept }: AIAssistantP
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  });
+  }, [aiLoadingState, runSelectedMode]);
 
   return (
     <aside className="soul-glass flex h-full flex-col gap-3 rounded-xl border border-white/20 p-3">

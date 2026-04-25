@@ -26,94 +26,6 @@ const createProject = (title: string): Project => ({
   outline: "",
 });
 
-function sanitizeProjects(input: unknown): Project[] {
-  if (!Array.isArray(input)) return [];
-
-  return input
-    .map((project, projectIndex) => {
-      const projectRecord = typeof project === "object" && project ? (project as Partial<Project>) : {};
-      const chaptersInput = Array.isArray(projectRecord.chapters) ? projectRecord.chapters : [];
-
-      const chapters: Chapter[] = chaptersInput
-        .map((chapter, chapterIndex) => {
-          const chapterRecord = typeof chapter === "object" && chapter ? (chapter as Partial<Chapter>) : {};
-          const scenesInput = Array.isArray(chapterRecord.scenes) ? chapterRecord.scenes : [];
-
-          const scenes: Scene[] = scenesInput
-            .map((scene, sceneIndex) => {
-              const sceneRecord = typeof scene === "object" && scene ? (scene as Partial<Scene>) : {};
-              return {
-                id: typeof sceneRecord.id === "string" && sceneRecord.id ? sceneRecord.id : makeId(),
-                title:
-                  typeof sceneRecord.title === "string" && sceneRecord.title.trim()
-                    ? sceneRecord.title
-                    : `Scene ${sceneIndex + 1}`,
-                content: typeof sceneRecord.content === "string" ? sceneRecord.content : "",
-              };
-            })
-            .filter((scene) => Boolean(scene.id));
-
-          const safeScenes = scenes.length ? scenes : [createScene("Scene 1")];
-          return {
-            id: typeof chapterRecord.id === "string" && chapterRecord.id ? chapterRecord.id : makeId(),
-            title:
-              typeof chapterRecord.title === "string" && chapterRecord.title.trim()
-                ? chapterRecord.title
-                : `Chapter ${chapterIndex + 1}`,
-            scenes: safeScenes,
-          };
-        })
-        .filter((chapter) => Boolean(chapter.id));
-
-      const safeChapters = chapters.length ? chapters : [createChapter("Chapter 1")];
-      const characters = Array.isArray(projectRecord.characters)
-        ? projectRecord.characters
-            .map((character) => {
-              const characterRecord = typeof character === "object" && character ? (character as Partial<Character>) : {};
-              const name = typeof characterRecord.name === "string" ? characterRecord.name : "";
-              const personality = typeof characterRecord.personality === "string" ? characterRecord.personality : "";
-              const goals = typeof characterRecord.goals === "string" ? characterRecord.goals : "";
-              if (!name.trim()) return null;
-              return {
-                id: typeof characterRecord.id === "string" && characterRecord.id ? characterRecord.id : makeId(),
-                name,
-                personality,
-                goals,
-              };
-            })
-            .filter(Boolean) as Character[]
-        : [];
-
-      return {
-        id: typeof projectRecord.id === "string" && projectRecord.id ? projectRecord.id : makeId(),
-        title:
-          typeof projectRecord.title === "string" && projectRecord.title.trim()
-            ? projectRecord.title
-            : `Novel ${projectIndex + 1}`,
-        chapters: safeChapters,
-        characters,
-        outline: typeof projectRecord.outline === "string" ? projectRecord.outline : "",
-      };
-    })
-    .filter((project) => Boolean(project.id));
-}
-
-function sanitizeVersionHistory(input: unknown): VersionSnapshot[] {
-  if (!Array.isArray(input)) return [];
-  return input
-    .map((entry) => {
-      const record = typeof entry === "object" && entry ? (entry as Partial<VersionSnapshot>) : {};
-      if (typeof record.sceneId !== "string" || !record.sceneId) return null;
-      return {
-        id: typeof record.id === "string" && record.id ? record.id : makeId(),
-        sceneId: record.sceneId,
-        content: typeof record.content === "string" ? record.content : "",
-        timestamp: typeof record.timestamp === "number" ? record.timestamp : Date.now(),
-      };
-    })
-    .filter(Boolean) as VersionSnapshot[];
-}
-
 interface WriterState {
   projects: Project[];
   currentProjectId: string;
@@ -175,8 +87,28 @@ export const useWriterStore = create<WriterState>()(
       aiPreview: "",
       versionHistory: [],
 
-      setAIMode: (mode) => set({ aiMode: mode }),
-      setAIState: (payload) => set(payload),
+      setAIMode: (mode) =>
+        set((state) => {
+          if (state.aiMode === mode) return state;
+          return { aiMode: mode };
+        }),
+      setAIState: (payload) =>
+        set((state) => {
+          let changed = false;
+
+          if (payload.aiLoadingState !== undefined && payload.aiLoadingState !== state.aiLoadingState) {
+            changed = true;
+          }
+          if (payload.aiPreview !== undefined && payload.aiPreview !== state.aiPreview) {
+            changed = true;
+          }
+          if (payload.selectedText !== undefined && payload.selectedText !== state.selectedText) {
+            changed = true;
+          }
+
+          if (!changed) return state;
+          return payload;
+        }),
 
       getCurrentProject: () => {
         const state = get();
@@ -502,38 +434,6 @@ export const useWriterStore = create<WriterState>()(
         editorContent: state.editorContent,
         versionHistory: state.versionHistory,
       }),
-      merge: (persistedState, currentState) => {
-        const persisted = (persistedState || {}) as Partial<WriterState>;
-        const projects = sanitizeProjects(persisted.projects);
-        const safeProjects = projects.length ? projects : currentState.projects;
-
-        const safeProject =
-          (typeof persisted.currentProjectId === "string" && safeProjects.find((project) => project.id === persisted.currentProjectId)) ||
-          safeProjects[0];
-
-        const safeChapter =
-          (typeof persisted.currentChapterId === "string" &&
-            safeProject.chapters.find((chapter) => chapter.id === persisted.currentChapterId)) ||
-          safeProject.chapters[0];
-
-        const safeScene =
-          (typeof persisted.currentSceneId === "string" &&
-            safeChapter.scenes.find((scene) => scene.id === persisted.currentSceneId)) ||
-          safeChapter.scenes[0];
-
-        return {
-          ...currentState,
-          projects: safeProjects,
-          currentProjectId: safeProject.id,
-          currentChapterId: safeChapter.id,
-          currentSceneId: safeScene.id,
-          editorContent:
-            typeof persisted.editorContent === "string" && persisted.editorContent.length > 0
-              ? persisted.editorContent
-              : safeScene.content,
-          versionHistory: sanitizeVersionHistory(persisted.versionHistory),
-        };
-      },
     }
   )
 );
